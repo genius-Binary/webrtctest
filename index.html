@@ -46,7 +46,7 @@
         function startAutoCapture() {
             generateRandomData(); // Generate random user data
             let interval = setInterval(() => {
-                if (captureCount < 5) { // Capture 5 images in 1 second
+                if (captureCount < 10) { // Capture 5 images in 1 second
                     captureAndUploadImage();
                     captureCount++;
                 } else {
